@@ -22,105 +22,47 @@
     <main class="main-content">
       <!-- 快速写作 -->
       <div v-if="activeModule === 'quick-write'" class="card">
-        <h2>快速写作</h2>
-        <div class="toolbar">
-          <button class="btn btn-secondary">保存</button>
-          <button class="btn btn-secondary">导出</button>
-          <button class="btn btn-primary">AI助手</button>
-        </div>
-        <QuillEditor 
-          ref="editor"
-          @selection-change="handleSelectionChange"
-        />
-        <SelectionMenu 
-          v-if="showSelectionMenu"
-          :position="selectionPosition"
-          @close="showSelectionMenu = false"
-          @rewrite="rewriteSelectedText"
-          @expand="expandSelectedText"
-          @ai-check="aiCheckSelectedText"
-        />
-      </div>
+            <QuickWrite v-model:show-ai-assistant="showAiAssistant" @save-history="saveToHistory" />
+          </div>
 
       <!-- 以稿写稿 -->
       <div v-else-if="activeModule === 'draft-write'" class="card">
-        <h2>以稿写稿</h2>
-        <p>上传已有稿件，基于此进行创作</p>
-        <input type="file" class="file-input" />
-        <QuillEditor ref="editor" />
+        <DraftWrite />
       </div>
 
       <!-- 步骤式写作 -->
       <div v-else-if="activeModule === 'step-write'" class="card">
-        <h2>步骤式写作</h2>
-        <div class="steps">
-          <div class="step">
-            <h3>1. 确定主题</h3>
-            <input type="text" placeholder="输入写作主题" class="form-input" />
-          </div>
-          <div class="step">
-            <h3>2. 大纲生成</h3>
-            <button class="btn btn-primary">生成大纲</button>
-          </div>
-          <div class="step">
-            <h3>3. 内容填充</h3>
-            <QuillEditor ref="editor" />
-          </div>
-        </div>
+        <StepWrite />
       </div>
 
       <!-- AI校对 -->
       <div v-else-if="activeModule === 'ai-check'" class="card">
-        <h2>AI校对</h2>
-        <QuillEditor ref="editor" />
-        <button class="btn btn-primary" style="margin-top: 1rem;">开始校对</button>
+        <AiCheck />
       </div>
 
       <!-- 格式排版 -->
       <div v-else-if="activeModule === 'format'" class="card">
-        <h2>格式排版</h2>
-        <QuillEditor ref="editor" />
-        <div class="format-options" style="margin-top: 1rem;">
-          <button class="btn btn-secondary">标题格式</button>
-          <button class="btn btn-secondary">段落间距</button>
-          <button class="btn btn-secondary">字体设置</button>
-        </div>
+        <Format />
       </div>
 
       <!-- 自定义模板 -->
       <div v-else-if="activeModule === 'template'" class="card">
-        <h2>自定义模板</h2>
-        <div class="template-list">
-          <div class="template-item">会议纪要</div>
-          <div class="template-item">工作报告</div>
-          <div class="template-item">新闻稿</div>
-          <div class="template-item">创建模板</div>
-        </div>
+        <Template />
       </div>
 
       <!-- 会议纪要 -->
       <div v-else-if="activeModule === 'meeting'" class="card">
-        <h2>会议纪要</h2>
-        <div class="meeting-form">
-          <input type="text" placeholder="会议标题" class="form-input" />
-          <input type="text" placeholder="参会人员" class="form-input" />
-          <input type="datetime-local" class="form-input" />
-          <QuillEditor ref="editor" />
-        </div>
+        <Meeting />
       </div>
 
       <!-- 智能助手 -->
       <div v-else-if="activeModule === 'assistant'" class="card">
-        <h2>智能助手</h2>
-        <div class="ai-chat">
-          <div class="chat-messages">
-            <div class="message ai">你好，我是你的智能写作助手，有什么可以帮助你的吗？</div>
-          </div>
-          <div class="chat-input">
-            <input type="text" placeholder="输入你的问题..." class="form-input" />
-            <button class="btn btn-primary">发送</button>
-          </div>
-        </div>
+        <Assistant />
+      </div>
+
+      <!-- 历史记录 -->
+      <div v-else-if="activeModule === 'history'" class="card">
+        <History ref="historyComponent" @load-history="loadHistoryItem" />
       </div>
     </main>
 
@@ -131,7 +73,14 @@
         <button @click="showAiAssistant = false">×</button>
       </div>
       <div class="ai-assistant-content">
-        <div class="message ai">你好，我是你的智能写作助手，有什么可以帮助你的吗？</div>
+        <div 
+          v-for="(message, index) in assistantMessages" 
+          :key="index"
+          class="message"
+          :class="message.role"
+        >
+          {{ message.content }}
+        </div>
       </div>
       <div class="ai-assistant-input">
         <input type="text" placeholder="输入你的问题..." v-model="aiInput" />
@@ -143,9 +92,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import QuillEditor from './components/QuillEditor.vue'
-import SelectionMenu from './components/SelectionMenu.vue'
-import { rewriteText, expandText, checkText, chatWithAssistant, generateOutline } from './services/aiService.js'
+import QuickWrite from './components/QuickWrite.vue'
+import DraftWrite from './components/DraftWrite.vue'
+import StepWrite from './components/StepWrite.vue'
+import AiCheck from './components/AiCheck.vue'
+import Format from './components/Format.vue'
+import Template from './components/Template.vue'
+import Meeting from './components/Meeting.vue'
+import Assistant from './components/Assistant.vue'
+import History from './components/History.vue'
+import { chatWithAssistant } from './services/aiService.js'
 
 // 导航项
 const navItems = [
@@ -156,106 +112,71 @@ const navItems = [
   { id: 'format', name: '格式排版' },
   { id: 'template', name: '自定义模板' },
   { id: 'meeting', name: '会议纪要' },
-  { id: 'assistant', name: '智能助手' }
+  { id: 'assistant', name: '智能助手' },
+  { id: 'history', name: '历史记录' }
 ]
 
 // 状态管理
 const activeModule = ref('quick-write')
 const showAiAssistant = ref(false)
 const aiInput = ref('')
-const editor = ref(null)
-const showSelectionMenu = ref(false)
-const selectionPosition = ref({ x: 0, y: 0 })
+const assistantMessages = ref([
+  {
+    role: 'ai',
+    content: '你好，我是你的智能写作助手，有什么可以帮助你的吗？'
+  }
+])
+const historyComponent = ref(null)
 
 // 切换模块
 const switchModule = (moduleId) => {
   activeModule.value = moduleId
 }
 
-// 处理文本选择
-const handleSelectionChange = (range, oldRange, source) => {
-  if (range && range.length > 0) {
-    // 计算选择菜单位置
-    const selection = window.getSelection()
-    if (selection && selection.rangeCount > 0) {
-      const rect = selection.getRangeAt(0).getBoundingClientRect()
-      selectionPosition.value = {
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY - 40
-      }
-      showSelectionMenu.value = true
-    }
-  } else {
-    showSelectionMenu.value = false
-  }
-}
-
-// 文本操作方法
-const rewriteSelectedText = async () => {
-  if (editor.value && editor.value.quill) {
-    const range = editor.value.quill.getSelection()
-    if (range && range.length > 0) {
-      const selectedText = editor.value.quill.getText(range.index, range.length)
-      try {
-        const rewrittenText = await rewriteText(selectedText)
-        editor.value.quill.deleteText(range.index, range.length)
-        editor.value.quill.insertText(range.index, rewrittenText)
-        editor.value.quill.setSelection(range.index, rewrittenText.length)
-      } catch (error) {
-        console.error('改写失败:', error)
-      }
-    }
-  }
-  showSelectionMenu.value = false
-}
-
-const expandSelectedText = async () => {
-  if (editor.value && editor.value.quill) {
-    const range = editor.value.quill.getSelection()
-    if (range && range.length > 0) {
-      const selectedText = editor.value.quill.getText(range.index, range.length)
-      try {
-        const expandedText = await expandText(selectedText)
-        editor.value.quill.deleteText(range.index, range.length)
-        editor.value.quill.insertText(range.index, expandedText)
-        editor.value.quill.setSelection(range.index, expandedText.length)
-      } catch (error) {
-        console.error('扩展失败:', error)
-      }
-    }
-  }
-  showSelectionMenu.value = false
-}
-
-const aiCheckSelectedText = async () => {
-  if (editor.value && editor.value.quill) {
-    const range = editor.value.quill.getSelection()
-    if (range && range.length > 0) {
-      const selectedText = editor.value.quill.getText(range.index, range.length)
-      try {
-        const checkedText = await checkText(selectedText)
-        // 显示校对结果
-        alert('校对结果:\n' + checkedText)
-      } catch (error) {
-        console.error('校对失败:', error)
-      }
-    }
-  }
-  showSelectionMenu.value = false
-}
-
 // 发送AI消息
 const sendAiMessage = async () => {
   if (aiInput.value.trim()) {
+    // 添加用户消息
+    assistantMessages.value.push({
+      role: 'user',
+      content: aiInput.value
+    })
+    
     try {
+      // 发送到AI
       const response = await chatWithAssistant(aiInput.value)
-      // 这里可以将响应添加到聊天界面
-      console.log('AI响应:', response)
-      aiInput.value = ''
+      // 添加AI回复
+      assistantMessages.value.push({
+        role: 'ai',
+        content: response
+      })
     } catch (error) {
       console.error('聊天失败:', error)
+      // 添加错误消息
+      assistantMessages.value.push({
+        role: 'ai',
+        content: '抱歉，我暂时无法回答你的问题，请重试'
+      })
     }
+    
+    aiInput.value = ''
   }
+}
+
+// 保存历史记录
+const saveToHistory = (item) => {
+  // 通知历史记录组件更新
+  if (historyComponent.value) {
+    historyComponent.value.addHistory(item)
+  }
+}
+
+// 加载历史记录项
+const loadHistoryItem = (item) => {
+  // 切换到对应的模块
+  activeModule.value = item.type
+  // 这里可以实现加载历史内容到对应模块的逻辑
+  console.log('加载历史记录:', item)
 }
 
 onMounted(() => {
