@@ -28,6 +28,8 @@
     <QuillEditor 
       ref="editor"
       @selection-change="handleSelectionChange"
+      @contextmenu-event="handleContextMenu"
+      @text-change="handleTextChange"
     />
     <SelectionMenu 
       v-if="showSelectionMenu"
@@ -71,6 +73,24 @@ const toggleAiAssistant = () => {
 // 处理文本选择
 const handleSelectionChange = (range, oldRange, source) => {
   if (range && range.length > 0) {
+    // 保存选中的文本和位置，但不显示菜单
+    if (editor.value && editor.value.quill) {
+      selectedText.value = editor.value.quill.getText(range.index, range.length)
+      savedRange.value = { ...range }
+      showSelectionMenu.value = false
+    }
+  } else {
+    selectedText.value = ''
+    savedRange.value = null
+    showSelectionMenu.value = false
+  }
+}
+
+// 处理右键菜单事件
+const handleContextMenu = (e) => {
+  e.preventDefault()
+  if (selectedText.value && savedRange.value) {
+    // 获取选择范围的位置
     const selection = window.getSelection()
     if (selection && selection.rangeCount > 0) {
       const rect = selection.getRangeAt(0).getBoundingClientRect()
@@ -78,18 +98,17 @@ const handleSelectionChange = (range, oldRange, source) => {
         x: rect.left + window.scrollX,
         y: rect.top + window.scrollY - 40
       }
-      showSelectionMenu.value = true
-      // 保存选中的文本和位置
-      if (editor.value && editor.value.quill) {
-        selectedText.value = editor.value.quill.getText(range.index, range.length)
-        savedRange.value = { ...range }
-      }
     }
+    // 右键点击且有选中文字时显示菜单
+    showSelectionMenu.value = true
   } else {
     showSelectionMenu.value = false
-    selectedText.value = ''
-    savedRange.value = null
   }
+}
+
+// 处理文本变化，关闭弹窗
+const handleTextChange = () => {
+  showSelectionMenu.value = false
 }
 
 // 生成内容
@@ -103,13 +122,28 @@ const generateContent = async () => {
         const range = editor.value.quill.getSelection()
         const startIndex = range ? range.index : 0
         let currentIndex = startIndex
+        let fullContent = ''
         
         await chatWithAssistant(aiPrompt.value, (chunk) => {
           if (editor.value && editor.value.quill) {
-            editor.value.quill.insertText(currentIndex, chunk)
+            const quill = editor.value.quill
+            quill.insertText(currentIndex, chunk)
             currentIndex += chunk.length
+            fullContent += chunk
           }
         })
+        
+        // 生成完成后设置一次选区
+        if (editor.value && editor.value.quill) {
+          try {
+            const quill = editor.value.quill
+            const length = quill.getLength()
+            const safeIndex = Math.min(currentIndex, length - 1)
+            quill.setSelection(safeIndex, 0)
+          } catch (e) {
+            console.warn('设置选区失败:', e)
+          }
+        }
       }
       aiPrompt.value = ''
     } catch (error) {
@@ -208,7 +242,8 @@ const saveContent = () => {
 // 导出内容
 const exportContent = () => {
   if (editor.value && editor.value.quill) {
-    const content = editor.value.quill.getText()
+    // const content = editor.value.quill.getText()
+    var content = editor.value.quill.root.innerHTML;
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
