@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 // 路由配置
 const routes = [
@@ -10,6 +10,11 @@ const routes = [
     path: '/dialog',
     name: 'Dialog',
     component: () => import('../views/dialog/index.vue')
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/login/login.vue')
   },
   {
     path: '/quick-write',
@@ -34,7 +39,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes
 })
 

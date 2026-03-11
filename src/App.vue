@@ -7,7 +7,7 @@
           <span class="logo-icon">📝</span>
           <span class="logo-text">数智记者</span>
         </div>
-        <button class="btn btn-primary create-btn">+ 创建新对话</button>
+        <button class="btn btn-primary create-btn" @click="createNewConversation">+ 创建新对话</button>
       </div>
       
       <nav class="sidebar-nav">
@@ -27,8 +27,8 @@
       
       <div class="sidebar-footer">
         <div class="user-info">
-          <div class="user-avatar">张</div>
-          <span class="user-name">张三</span>
+          <div class="user-avatar">{{ store.userStore.user.username?.[0] }}</div>
+          <span class="user-name">{{ store.userStore.user.username }}</span>
           <span class="user-arrow">›</span>
         </div>
       </div>
@@ -79,6 +79,7 @@ import Meeting from './components/Meeting.vue'
 import Assistant from './components/Assistant.vue'
 import History from './components/History.vue'
 import { chatWithAssistant } from './services/aiService.js'
+import store from '@/store'
 
 const router = useRouter()
 const route = useRoute()
@@ -91,6 +92,12 @@ const navItems = [
   { id: 'step-write', name: '出口成章', icon: '📤' },
   { id: 'ai-check', name: '素材库', icon: '📚' }
 ]
+
+// 创建新对话
+const createNewConversation = () => {
+  // 跳转到首页
+  router.push('/dialog')
+}
 
 // 状态管理
 const activeModule = ref('quick-write')
