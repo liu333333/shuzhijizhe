@@ -9,7 +9,7 @@
 			</div>
 		</div>
 		<div class="kong" v-if="isShow && isFullPage"></div>
-		<div class="content" v-if="!isShow">
+		<div class="content" v-if="!isShow" id="ai-ask-content">
 			<div class="content-item" v-for="(item, index) in itemArrayObj.itemArray" :key="index">
 				<div class="ans">
 					<div class="ans-text-box">
@@ -159,7 +159,7 @@ import { reactive, ref, watch, nextTick } from 'vue'
 import store from '@/store'
 import axios from 'axios'
 import { marked } from 'marked'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download } from '@element-plus/icons-vue'
 import { syHistoryList, syHistoryRecords ,stopChatMessages} from '@/api/ai'
 import { Document, Paragraph, HeadingLevel, TextRun, Table, TableRow, TableCell, Packer } from 'docx'
 import { saveAs } from 'file-saver'
@@ -556,7 +556,7 @@ watch(isFullPage, newVal => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-	const container = document.querySelector('.content')
+	const container = document.querySelector('#ai-ask-content')
 	if (container) {
 		container.scrollTop = container.scrollHeight
 	}
@@ -652,6 +652,7 @@ const processStreamData = chunk => {
 					isStop.value = false
 					itemArrayObj.itemArray[itemArrayObj.itemArray.length - 1].loading = false
 					isStreaming.value = false
+					form.query = ''
 					return
 				}
 

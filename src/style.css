@@ -159,7 +159,7 @@ body {
 .main-content {
   flex: 1;
   margin-left: 250px;
-  padding: 0;
+  padding: 1rem;
   min-height: 100vh;
   background-color: var(--background);
 }
@@ -176,6 +176,8 @@ body {
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--text-color);
+  width: 100%;
+  text-align: center;
 }
 
 .history-btn {
@@ -184,6 +186,8 @@ body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
+  position: absolute;
+  right: 1rem;
 }
 
 .welcome-message {

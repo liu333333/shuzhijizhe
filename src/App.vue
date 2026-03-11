@@ -1,68 +1,76 @@
 <template>
   <div class="app">
-    <!-- 左侧导航栏 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-icon">📝</span>
-          <span class="logo-text">数智记者</span>
+    <!-- 登录状态判断 -->
+    <template v-if="store.userStore.token">
+      <!-- 左侧导航栏 -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <span class="logo-icon">📝</span>
+            <span class="logo-text">数智记者</span>
+          </div>
+          <button class="btn btn-primary create-btn" @click="createNewConversation">+ 创建新对话</button>
         </div>
-        <button class="btn btn-primary create-btn" @click="createNewConversation">+ 创建新对话</button>
-      </div>
-      
-      <nav class="sidebar-nav">
-        <ul class="nav-list">
-          <li 
-            v-for="item in navItems" 
-            :key="item.id"
-            class="nav-item"
-            :class="{ active: activeModule === item.id }"
-            @click="switchModule(item.id)"
+        
+        <nav class="sidebar-nav">
+          <ul class="nav-list">
+            <li 
+              v-for="item in navItems" 
+              :key="item.id"
+              class="nav-item"
+              :class="{ active: activeModule === item.id }"
+              @click="switchModule(item.id)"
+            >
+              <span class="nav-icon">{{ item.icon }}</span>
+              <span class="nav-text">{{ item.name }}</span>
+            </li>
+          </ul>
+        </nav>
+        
+        <div class="sidebar-footer">
+          <div class="user-info">
+            <div class="user-avatar">{{ store.userStore.user.username?.[0] }}</div>
+            <span class="user-name">{{ store.userStore.user.username }}</span>
+            <span class="user-arrow">›</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧主内容区域 -->
+      <main class="main-content">
+        <router-view />
+        <div class="content-tip">
+          版权所有：大河网
+        </div>
+      </main>
+
+      <!-- 智能助手悬浮窗口 -->
+      <div class="ai-assistant" v-if="showAiAssistant">
+        <div class="ai-assistant-header">
+          <span>智能助手</span>
+          <button @click="showAiAssistant = false">×</button>
+        </div>
+        <div class="ai-assistant-content">
+          <div 
+            v-for="(message, index) in assistantMessages" 
+            :key="index"
+            class="message"
+            :class="message.role"
           >
-            <span class="nav-icon">{{ item.icon }}</span>
-            <span class="nav-text">{{ item.name }}</span>
-          </li>
-        </ul>
-      </nav>
-      
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">{{ store.userStore.user.username?.[0] }}</div>
-          <span class="user-name">{{ store.userStore.user.username }}</span>
-          <span class="user-arrow">›</span>
+            {{ message.content }}
+          </div>
+        </div>
+        <div class="ai-assistant-input">
+          <input type="text" placeholder="输入你的问题..." v-model="aiInput" />
+          <button class="btn btn-primary" @click="sendAiMessage">发送</button>
         </div>
       </div>
-    </aside>
-
-    <!-- 右侧主内容区域 -->
-    <main class="main-content">
+    </template>
+    
+    <!-- 未登录状态 -->
+    <template v-else>
       <router-view />
-      <div class="content-tip">
-        版权所有：大河网
-      </div>
-    </main>
-
-    <!-- 智能助手悬浮窗口 -->
-    <div class="ai-assistant" v-if="showAiAssistant">
-      <div class="ai-assistant-header">
-        <span>智能助手</span>
-        <button @click="showAiAssistant = false">×</button>
-      </div>
-      <div class="ai-assistant-content">
-        <div 
-          v-for="(message, index) in assistantMessages" 
-          :key="index"
-          class="message"
-          :class="message.role"
-        >
-          {{ message.content }}
-        </div>
-      </div>
-      <div class="ai-assistant-input">
-        <input type="text" placeholder="输入你的问题..." v-model="aiInput" />
-        <button class="btn btn-primary" @click="sendAiMessage">发送</button>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
