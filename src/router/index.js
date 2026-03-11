@@ -22,6 +22,11 @@ const routes = [
     component: () => import('../views/QuickWriteView.vue')
   },
   {
+    path: '/write',
+    name: 'Write',
+    component: () => import('../views/write/index.vue')
+  },
+  {
     path: '/draft-write',
     name: 'DraftWrite',
     component: () => import('../views/DraftWriteView.vue')

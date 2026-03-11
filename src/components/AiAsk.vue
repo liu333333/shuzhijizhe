@@ -527,7 +527,6 @@ const processThinkContentOutText = html => {
 // 监听响应文本变化
 watch(responseText, newVal => {
 	if (newVal) {
-		console.log(newVal, '--------new val')
 		// 将 markdown 转换为 HTML
 		const rawHtml = marked.parse(newVal)
 		// 处理深度思考内容
@@ -604,7 +603,6 @@ const fetchData = async () => {
 			data: formData,
 			responseType: 'text',
 			onDownloadProgress: progressEvent => {
-				console.log('---------988888', progressEvent)
 				if (!progressEvent.currentTarget) return
 
 				// 获取当前响应文本（注意：这不是真正的流式，而是进度事件）
@@ -612,7 +610,6 @@ const fetchData = async () => {
 
 				// 找出新增的部分（hack方式）
 				let newData = currentText.substring(lastChunk.length)
-				console.log(newData, '--------newData')
 				lastChunk = currentText
 
 				// 处理新增数据
