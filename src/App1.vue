@@ -1,17 +1,10 @@
 <template>
   <div class="app">
-    <!-- 左侧导航栏 -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-icon">📝</span>
-          <span class="logo-text">数智记者</span>
-        </div>
-        <button class="btn btn-primary create-btn">+ 创建新对话</button>
-      </div>
-      
-      <nav class="sidebar-nav">
-        <ul class="nav-list">
+    <!-- 导航栏 -->
+    <nav class="nav">
+      <div class="nav-container">
+        <div class="logo">数字记者</div>
+        <ul class="nav-menu">
           <li 
             v-for="item in navItems" 
             :key="item.id"
@@ -19,26 +12,57 @@
             :class="{ active: activeModule === item.id }"
             @click="switchModule(item.id)"
           >
-            <span class="nav-icon">{{ item.icon }}</span>
-            <span class="nav-text">{{ item.name }}</span>
+            {{ item.name }}
           </li>
         </ul>
-      </nav>
-      
-      <div class="sidebar-footer">
-        <div class="user-info">
-          <div class="user-avatar">张</div>
-          <span class="user-name">张三</span>
-          <span class="user-arrow">›</span>
-        </div>
       </div>
-    </aside>
+    </nav>
 
-    <!-- 右侧主内容区域 -->
+    <!-- 主内容区域 -->
     <main class="main-content">
-      <router-view />
-      <div class="content-tip">
-        版权所有：大河网
+      <!-- 快速写作 -->
+      <div v-if="activeModule === 'quick-write'" class="card">
+            <QuickWrite v-model:show-ai-assistant="showAiAssistant" @save-history="saveToHistory" />
+          </div>
+
+      <!-- 以稿写稿 -->
+      <div v-else-if="activeModule === 'draft-write'" class="card">
+        <DraftWrite />
+      </div>
+
+      <!-- 步骤式写作 -->
+      <div v-else-if="activeModule === 'step-write'" class="card">
+        <StepWrite />
+      </div>
+
+      <!-- AI校对 -->
+      <div v-else-if="activeModule === 'ai-check'" class="card">
+        <AiCheck />
+      </div>
+
+      <!-- 格式排版 -->
+      <div v-else-if="activeModule === 'format'" class="card">
+        <Format />
+      </div>
+
+      <!-- 自定义模板 -->
+      <div v-else-if="activeModule === 'template'" class="card">
+        <Template />
+      </div>
+
+      <!-- 会议纪要 -->
+      <div v-else-if="activeModule === 'meeting'" class="card">
+        <Meeting />
+      </div>
+
+      <!-- 智能助手 -->
+      <div v-else-if="activeModule === 'assistant'" class="card">
+        <Assistant />
+      </div>
+
+      <!-- 历史记录 -->
+      <div v-else-if="activeModule === 'history'" class="card">
+        <History ref="historyComponent" @load-history="loadHistoryItem" />
       </div>
     </main>
 
@@ -67,8 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import QuickWrite from './components/QuickWrite.vue'
 import DraftWrite from './components/DraftWrite.vue'
 import StepWrite from './components/StepWrite.vue'
@@ -80,16 +103,17 @@ import Assistant from './components/Assistant.vue'
 import History from './components/History.vue'
 import { chatWithAssistant } from './services/aiService.js'
 
-const router = useRouter()
-const route = useRoute()
-
 // 导航项
 const navItems = [
-  { id: 'dialog', name: '对话', icon: '💬' },
-  { id: 'quick-write', name: 'AI对话', icon: '💬' },
-  { id: 'draft-write', name: 'AI写稿', icon: '✍️' },
-  { id: 'step-write', name: '出口成章', icon: '📤' },
-  { id: 'ai-check', name: '素材库', icon: '📚' }
+  { id: 'quick-write', name: '快速写作' },
+  { id: 'draft-write', name: '以稿写稿' },
+  { id: 'step-write', name: '步骤式写作' },
+  { id: 'ai-check', name: 'AI校对' },
+  { id: 'format', name: '格式排版' },
+  { id: 'template', name: '自定义模板' },
+  { id: 'meeting', name: '会议纪要' },
+  { id: 'assistant', name: '智能助手' },
+  { id: 'history', name: '历史记录' }
 ]
 
 // 状态管理
@@ -106,18 +130,8 @@ const historyComponent = ref(null)
 
 // 切换模块
 const switchModule = (moduleId) => {
-  router.push(`/${moduleId}`)
+  activeModule.value = moduleId
 }
-
-// 监听路由变化，更新激活状态
-watch(
-  () => route.path,
-  (newPath) => {
-    const moduleId = newPath.replace('/', '')
-    activeModule.value = moduleId
-  },
-  { immediate: true }
-)
 
 // 发送AI消息
 const sendAiMessage = async () => {
