@@ -97,7 +97,8 @@ const navItems = [
   { id: 'dialog', name: '对话', icon: '💬' },
   { id: 'quick-write', name: 'AI对话', icon: '💬' },
   { id: 'draft-write', name: 'AI写稿', icon: '✍️' },
-  { id: 'step-write', name: '出口成章', icon: '📤' },
+  // { id: 'step-write', name: '出口成章', icon: '📤' },
+  { id: 'impromptu-news', name: '出口成章', icon: '📤' },
   { id: 'ai-check', name: '素材库', icon: '📚' }
 ]
 

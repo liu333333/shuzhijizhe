@@ -32,6 +32,11 @@ const routes = [
     component: () => import('../views/DraftWriteView.vue')
   },
   {
+    path: '/impromptu-news', // 出口成章 临时文件
+    name: 'ImpromptuNews',
+    component: () => import('../views/impromptuNews/index.vue')
+  },
+  {
     path: '/step-write',
     name: 'StepWrite',
     component: () => import('../views/StepWriteView.vue')
