@@ -28,8 +28,21 @@
 					<div class="files-list" ref="filesList">
 						<div class="files-box" ref="filesBox">
 							<!-- <span class="tips-text">已上传文件：{{ formData.local_files.length }}</span> -->
-							<div class="files-item" v-for="(item, index) in formData.local_files" :key="index">
-								<img src="@/assets/file-icon-up.png" alt="" /> {{ item.name }} <el-icon @click="fileDel(item.uid)"><CircleCloseFilled /></el-icon>
+							<div class="file-item-enhanced" v-for="(item, index) in formData.local_files" :key="index">
+								<div class="file-icon">
+									<!-- <img src="@/assets/file-icon-up.png" alt="文件图标" class="file-icon-img" /> -->
+									<el-icon><Document /></el-icon>
+								</div>
+								<div class="file-info">
+									<div class="file-name">{{ item.name }}</div>
+								</div>
+								<el-button 
+									size="small" 
+									class="file-remove-btn"
+									@click="fileDel(item.uid)"
+								>
+									<el-icon><CircleCloseFilled /></el-icon>
+								</el-button>
 							</div>
 						</div>
 						<el-tooltip class="box-item" effect="light" content="向下滚动" placement="top" v-if="bottomJt">
@@ -119,6 +132,185 @@
             </div>
         </el-tooltip>
       </div>
+      
+      <!-- 参考资料区域 -->
+      <div class="reference-section">
+        <div class="structure-reference">
+          <div class="reference-header">
+            <span class="reference-title">结构参考 1/1</span>
+            <el-button size="small" type="primary" plain class="add-button">+</el-button>
+          </div>
+          <div class="reference-item">
+            <div class="reference-tabs">
+              <el-button size="small" type="primary" plain @click="switchStructureTab('local')">本地</el-button>
+              <el-button size="small" plain @click="switchStructureTab('case')">案例</el-button>
+            </div>
+            
+            <!-- 本地参考上传区域 -->
+            <div v-if="structureTab === 'local'" class="reference-content">
+              <el-upload
+                v-model:file-list="structureLocalFiles"
+                class="structure-upload"
+                action="#"
+                :auto-upload="false"
+                :on-change="handleStructureFileChange"
+                accept=".pdf,.PDF,.doc,.docx,.xlsx,.xls"
+				:show-file-list="false"
+              >
+                <el-button size="small" type="primary" plain>
+                  <el-icon><Upload /></el-icon>上传附件
+                </el-button>
+              </el-upload>
+              <div class="file-list-container" v-if="structureLocalFiles.length > 0">
+                <div 
+                  v-for="file in structureLocalFiles" 
+                  :key="file.uid"
+                  class="file-item-enhanced"
+                >
+                  <div class="file-icon">
+					<el-icon><Document /></el-icon>
+                    <!-- <img src="@/assets/file-icon-up.png" alt="文件图标" class="file-icon-img" /> -->
+                  </div>
+                  <div class="file-info">
+                    <div class="file-name">{{ file.name }}</div>
+                  </div>
+                  <el-button 
+                    size="small" 
+                    class="file-remove-btn"
+                    @click="removeStructureFile(file.uid)"
+                  >
+                    <el-icon><CircleCloseFilled /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 案例参考选择区域 -->
+            <div v-else-if="structureTab === 'case'" class="reference-content">
+              <el-select 
+                v-model="selectedStructureCase" 
+                placeholder="选择案例" 
+                size="small"
+                style="width: 200px"
+              >
+                <el-option 
+                  v-for="caseItem in structureCases" 
+                  :key="caseItem.id" 
+                  :label="caseItem.title" 
+                  :value="caseItem.id"
+                >
+                  <span style="font-size: 12px">{{ caseItem.title }} ({{ caseItem.wordCount }}字)</span>
+                </el-option>
+              </el-select>
+            </div>
+            
+            <div class="reference-word-count">{{ structureWordCount }} 字</div>
+            <el-button size="small" class="remove-button">
+              <el-icon><CircleCloseFilled /></el-icon>
+            </el-button>
+          </div>
+        </div>
+        
+        <div class="content-reference">
+          <div class="reference-header">
+            <span class="reference-title">内容参考 {{ contentReferences.length }}/10</span>
+            <el-button size="small" type="primary" plain class="add-button" @click="addContentReference">+</el-button>
+          </div>
+          
+          <div 
+            v-for="(ref, index) in contentReferences" 
+            :key="index"
+            class="reference-item"
+          >
+            <div class="reference-tabs">
+              <el-button 
+                size="small" 
+                :type="ref.tab === 'local' ? 'primary' : 'default'" 
+                plain
+                @click="switchContentTab(index, 'local')"
+              >
+                本地
+              </el-button>
+              <el-button 
+                size="small" 
+                :type="ref.tab === 'case' ? 'primary' : 'default'" 
+                plain
+                @click="switchContentTab(index, 'case')"
+              >
+                案例
+              </el-button>
+            </div>
+            
+            <!-- 本地参考上传区域 -->
+            <div v-if="ref.tab === 'local'" class="reference-content">
+              <div class="local-upload-container">
+                <div class="upload-area">
+                  <el-upload
+                    v-model:file-list="ref.localFiles"
+                    class="content-upload"
+                    action="#"
+                    :auto-upload="false"
+                    :on-change="(file, fileList) => handleContentFileChange(index, file, fileList)"
+                    accept=".pdf,.PDF,.doc,.docx,.xlsx,.xls"
+					:show-file-list="false"
+                  >
+                    <el-button size="small" type="primary" plain>
+                      <el-icon><Upload /></el-icon>上传附件
+                    </el-button>
+                  </el-upload>
+                </div>
+                
+                <div class="file-list-container" v-if="ref.localFiles.length > 0">
+                  <div 
+                    v-for="file in ref.localFiles" 
+                    :key="file.uid"
+                    class="file-item-enhanced"
+                  >
+                    <div class="file-icon">
+						<el-icon><Document /></el-icon>
+                      <!-- <img src="@/assets/file-icon-up.png" alt="文件图标" class="file-icon-img" /> -->
+                    </div>
+                    <div class="file-info">
+                      <div class="file-name">{{ file.name }}</div>
+                    </div>
+                    <el-button 
+                      size="small" 
+                      class="file-remove-btn"
+                      @click="removeContentFile(index, file.uid)"
+                    >
+                      <el-icon><CircleCloseFilled /></el-icon>
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 案例参考选择区域 -->
+            <div v-else-if="ref.tab === 'case'" class="reference-content">
+              <el-select 
+                v-model="ref.selectedCase" 
+                placeholder="选择案例" 
+                size="small"
+                style="width: 200px"
+              >
+                <el-option 
+                  v-for="caseItem in contentCases" 
+                  :key="caseItem.id" 
+                  :label="caseItem.title" 
+                  :value="caseItem.id"
+                >
+                  <span style="font-size: 12px">{{ caseItem.title }} ({{ caseItem.wordCount }}字)</span>
+                </el-option>
+              </el-select>
+            </div>
+            
+            <div class="reference-word-count">{{ ref.wordCount }} 字</div>
+            <el-button size="small" class="remove-button" @click="removeContentReference(index)">
+              <el-icon><CircleCloseFilled /></el-icon>
+            </el-button>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="recent-articles">
@@ -139,8 +331,8 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
-import { ElButton, ElInput, ElSelect, ElOption, ElForm, ElFormItem } from 'element-plus'
-import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download } from '@element-plus/icons-vue'
+import { ElButton, ElInput, ElSelect, ElOption, ElForm, ElFormItem, ElUpload } from 'element-plus'
+import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download, Upload, Document } from '@element-plus/icons-vue'
 
 const showfilelist = ref(false)
 const isfilesList = ref(false)
@@ -273,13 +465,29 @@ const styleValue = ref('')
 const fetchData = () => {
 	debugger
 	const form = new FormData()
-	form.append('type', formData.type)
+	form.append('type', formData.value.type)
 	// form.append('conversation_id', isactive.value == 'creation' ? formData.conversation_id :'')
-	form.append('conversation_id', formData.conversation_id)
-	form.append('query', formData.query)
-	if (formData.local_files.length > 0) {
-		form.value.local_files.forEach((item, index) => {
-			form.append('local_files', item)
+	form.append('conversation_id', formData.value.conversation_id)
+	form.append('query', formData.value.query)
+	
+	// 添加结构参考案例id
+	if (structureTab.value === 'case' && selectedStructureCase.value) {
+		form.append('structure_case_id', selectedStructureCase.value)
+	}
+	
+	// 添加内容参考案例id
+	const contentCaseIds = contentReferences.value
+		.filter(ref => ref.tab === 'case' && ref.selectedCase)
+		.map(ref => ref.selectedCase)
+	if (contentCaseIds.length > 0) {
+		contentCaseIds.forEach((id, index) => {
+			form.append(`content_case_ids[${index}]`, id)
+		})
+	}
+	
+	if (formData.value.local_files.length > 0) {
+		formData.value.local_files.forEach((item, index) => {
+			form.append('local_files', item.raw)
 		})
 	}
   console.log('获取数据')
@@ -314,6 +522,95 @@ const focus = () => {
   editableDiv.value?.focus();
 };
 
+// 结构参考相关
+const structureTab = ref('local')
+const structureLocalFiles = ref([])
+const structureCases = ref([
+  { id: 1, title: '新闻消息结构模板', wordCount: 864 },
+  { id: 2, title: '新闻发布稿结构模板', wordCount: 1200 },
+  { id: 3, title: '政策解读结构模板', wordCount: 1500 }
+])
+const selectedStructureCase = ref('')
+const structureWordCount = ref(864)
+
+// 内容参考相关
+const contentReferences = ref([])
+const contentCases = ref([
+  { id: 1, title: '经济新闻案例', wordCount: 500 },
+  { id: 2, title: '科技新闻案例', wordCount: 600 },
+  { id: 3, title: '社会新闻案例', wordCount: 700 },
+  { id: 4, title: '体育新闻案例', wordCount: 400 },
+  { id: 5, title: '娱乐新闻案例', wordCount: 350 }
+])
+
+// 切换结构参考标签
+const switchStructureTab = (tab) => {
+  structureTab.value = tab
+  if (tab === 'case' && selectedStructureCase.value) {
+    const selectedCase = structureCases.value.find(c => c.id === selectedStructureCase.value)
+    if (selectedCase) {
+      structureWordCount.value = selectedCase.wordCount
+    }
+  }
+}
+
+// 处理结构参考文件上传
+const handleStructureFileChange = (file, fileList) => {
+  structureLocalFiles.value = fileList
+  // 模拟计算字数
+  structureWordCount.value = Math.floor(Math.random() * 500) + 500
+}
+
+// 移除结构参考文件
+const removeStructureFile = (uid) => {
+  structureLocalFiles.value = structureLocalFiles.value.filter(file => file.uid !== uid)
+  if (structureLocalFiles.value.length === 0) {
+    structureWordCount.value = 0
+  }
+}
+
+// 添加内容参考
+const addContentReference = () => {
+  if (contentReferences.value.length < 10) {
+    contentReferences.value.push({
+      tab: 'local',
+      localFiles: [],
+      selectedCase: '',
+      wordCount: 0
+    })
+  }
+}
+
+// 移除内容参考
+const removeContentReference = (index) => {
+  contentReferences.value.splice(index, 1)
+}
+
+// 切换内容参考标签
+const switchContentTab = (index, tab) => {
+  contentReferences.value[index].tab = tab
+  if (tab === 'case' && contentReferences.value[index].selectedCase) {
+    const selectedCase = contentCases.value.find(c => c.id === contentReferences.value[index].selectedCase)
+    if (selectedCase) {
+      contentReferences.value[index].wordCount = selectedCase.wordCount
+    }
+  }
+}
+
+// 处理内容参考文件上传
+const handleContentFileChange = (index, file, fileList) => {
+  contentReferences.value[index].localFiles = fileList
+  // 模拟计算字数
+  contentReferences.value[index].wordCount = Math.floor(Math.random() * 300) + 200
+}
+
+// 移除内容参考文件
+const removeContentFile = (index, uid) => {
+  contentReferences.value[index].localFiles = contentReferences.value[index].localFiles.filter(file => file.uid !== uid)
+  if (contentReferences.value[index].localFiles.length === 0) {
+    contentReferences.value[index].wordCount = 0
+  }
+}
 
 const scenes = [
   { id: 'news', name: '新闻消息' },
@@ -328,6 +625,7 @@ const activeScene = ref('news')
 const formData = ref({
   deepThink: true,
   online: true,
+  type: 1,
   value: '',
   conversation_id: '',
   query: '',
@@ -489,6 +787,178 @@ const recentArticles = ref([
   margin-left: auto;
 }
 
+.reference-section {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.structure-reference {
+  margin-bottom: 20px;
+}
+
+.reference-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reference-title {
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+}
+
+.add-button {
+  min-width: 28px;
+  padding: 0;
+  height: 28px;
+  line-height: 26px;
+}
+
+.reference-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background-color: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+}
+
+.reference-tabs {
+  display: flex;
+  gap: 8px;
+  margin-right: 10px;
+}
+
+.reference-word-count {
+  margin: 0 auto;
+  font-size: 14px;
+  color: #666;
+}
+
+.remove-button {
+  color: #999;
+  padding: 0;
+  min-width: 28px;
+  height: 28px;
+  line-height: 26px;
+}
+
+.content-reference {
+  margin-top: 15px;
+}
+
+.content-reference .reference-header {
+  border-top: 1px dashed #e8e8e8;
+  padding-top: 15px;
+  margin-top: 15px;
+  margin-bottom: 0;
+}
+
+.reference-content {
+  flex: 1;
+  margin: 0 20px;
+}
+
+.structure-upload,
+.content-upload {
+  margin-bottom: 10px;
+}
+
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.file-remove {
+  margin-left: 5px;
+  padding: 0;
+  min-width: 20px;
+  height: 20px;
+  line-height: 18px;
+}
+
+.file-item span {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-list-container {
+  margin-top: 8px;
+}
+
+.file-item-enhanced {
+  display: flex;
+  align-items: center;
+  background-color: #e6e8f8;
+  border-radius: 5px;
+  padding: 4px 8px;
+  margin-right: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: rgba(51, 51, 51, 0.8);
+  float: left;
+}
+
+.file-icon {
+  margin-right: 6px;
+}
+
+.file-icon-img {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-remove-btn {
+  margin-left: 4px;
+  padding: 0;
+  min-width: 16px;
+  height: 16px;
+  line-height: 14px;
+  border-radius: 50%;
+  background-color: #fff;
+  border: 1px solid #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-remove-btn:hover {
+  background-color: #ff4d4f;
+  border-color: #ff4d4f;
+  color: #fff;
+}
+
 .recent-articles h3 {
   font-size: 18px;
   font-weight: bold;
@@ -594,33 +1064,13 @@ const recentArticles = ref([
 						}
 					}
 					.files-box {
-						width: 100%;
-						height: auto;
-						display: flex;
-						align-items: center;
-						flex-wrap: wrap;
-						padding-top: 10px;
-						box-sizing: border-box;
-						.files-item {
-							display: flex;
-							align-items: center;
-							border-radius: 5px;
-							background: #e6e8f8;
-							padding: 0 5px;
-							margin-right: 10px;
-							/* margin-bottom: 10px; */
-							color: rgba(51, 51, 51, 0.5);
-							position: relative;
-							.el-icon {
-								position: absolute;
-								right: -6px;
-								top: -6px;
-								border: 1px solid #fff;
-								border-radius: 50%;
-								cursor: pointer;
+								width: 100%;
+								height: auto;
+								display: flex;
+								flex-wrap: wrap;
+								padding-top: 10px;
+								box-sizing: border-box;
 							}
-						}
-					}
 				}
 				.files-list::-webkit-scrollbar {
 					width: 0px; /* 或任何非常小的值 */
