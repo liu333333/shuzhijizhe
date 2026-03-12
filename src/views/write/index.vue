@@ -1,7 +1,6 @@
 <template>
   <div class="write-container">
     <div class="write-header">
-      <div class="login-tip">登录后可使用标注、导出等更多功能</div>
       <div class="history-btn">历史稿件</div>
     </div>
     
@@ -25,10 +24,11 @@
     <div class="prompt-box">
       <div class="form-box">
 			<el-form :model="form" class="form-class">
-				<el-form-item v-if="isfilesList">
+				<el-form-item v-if="isfilesList" class="files-input-c">
 					<div class="files-list" ref="filesList">
 						<div class="files-box" ref="filesBox">
-							<div class="files-item" v-for="(item, index) in form.local_files" :key="index">
+							<!-- <span class="tips-text">已上传文件：{{ formData.local_files.length }}</span> -->
+							<div class="files-item" v-for="(item, index) in formData.local_files" :key="index">
 								<img src="@/assets/file-icon-up.png" alt="" /> {{ item.name }} <el-icon @click="fileDel(item.uid)"><CircleCloseFilled /></el-icon>
 							</div>
 						</div>
@@ -39,7 +39,6 @@
 				</el-form-item>
 				<el-form-item class="div-input text-input-c">
 					<div 
-						
 						ref="editableDiv"
 						:class="['text-input', isfilesList ? 'mheigth' : '']"
 						:contenteditable="wContenteditable"
@@ -53,7 +52,7 @@
 						<span class="tips-text">，文章篇幅</span>
 						<span contenteditable='true' class="tips-text-input blue-tips" tabindex="0" :data-placeholder="placeholder2" @focus="logFocus" @blur="logBlur"></span>
 						<span class="tips-text">，风格</span>
-						<select class="tips-select blue-tips" v-model="styleValue">
+						<select class="tips-select blue-tips" v-model="styleValue" @change="styleValueChange">
 							<option value="">请选择</option>
 							<option value="正式">正式</option>
 							<option value="轻松">轻松</option>
@@ -71,8 +70,6 @@
 						<span class="tips-text">，其他要求</span>
 						<span contenteditable='true' class="tips-text-input blue-tips" tabindex="0" :data-placeholder="placeholder4" @focus="logFocus" @blur="logBlur"></span>
 						<span class="tips-text">。</span>
-
-
 					</div>
 					<!-- <div 
 						v-else
@@ -141,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { ElButton, ElInput, ElSelect, ElOption, ElForm, ElFormItem } from 'element-plus'
 import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download } from '@element-plus/icons-vue'
 
@@ -151,10 +148,20 @@ const filesBox = ref(null)
 const filesList = ref(null)
 const filesListArrayId = ref([])
 const filesListArrayAllId = ref([])
+const wContenteditable = ref(true)
+const bottomJt = ref(false)
+const editableDiv = ref(null);
+
+onMounted(() => {
+	nextTick(() => {
+		updateQuery();
+	});
+});
+
 const fileDel = id => {
-    form.local_files = form.local_files.filter(item => item.uid !== id)
+    formData.local_files = formData.local_files.filter(item => item.uid !== id)
     filesListArrayId.value.push(id)
-    isfilesList.value = form.local_files.length > 0 ? true : false
+    isfilesList.value = formData.local_files.length > 0 ? true : false
     nextTick(() => {
         if (filesBox.value) {
             bottomJt.value = filesBox.value.offsetHeight > 60
@@ -163,9 +170,10 @@ const fileDel = id => {
 }
 
 const handleFileChange = (file, fileList) => {
+	debugger
 	// 1. 检查文件大小（限制 1MB）
 	if (file) {
-		const maxSize = 10 * 1024 * 1024 // 1MB
+		const maxSize = 10 * 1024 * 1024 // 10MB
 		const sizeValid = file.size <= maxSize
 		if (!sizeValid) {
 			ElMessage.error(`${file.name} 超过 10MB 限制！`)
@@ -188,12 +196,17 @@ const handleFileChange = (file, fileList) => {
 		const uniqueFileList = fileList.filter((f, i, arr) => i === arr.findIndex(item => item.name === f.name))
 		fileList = uniqueFileList
 	}
-	form.local_files = []
+	formData.value.local_files = []
 	fileList.forEach((item, index) => {
-		form.local_files.push(item.raw)
+		// 保留完整的文件对象，包含uid属性
+		formData.value.local_files.push({
+			name: item.name,
+			uid: item.uid,
+			raw: item.raw
+		})
 		filesListArrayAllId.value.push(item.uid)
 	})
-	isfilesList.value = form.local_files.length > 0 ? true : false
+	isfilesList.value = formData.value.local_files.length > 0 ? true : false
 	nextTick(() => {
 		if (filesBox.value) {
 			bottomJt.value = filesBox.value.offsetHeight > 60
@@ -215,7 +228,36 @@ const handleInput = (e) => {
 		placeholder.value = '请输入稿件分析的具体要求。示例：请帮我对稿件内容进行分析，要求客观公正，对稿件评分、标签、原创性等多维度分析。'
 	}
   	text.value = e.target.innerText;
-	form.query = editableDiv.value?.innerText
+	updateQuery()
+};
+
+// 更新查询文本，排除下拉框的所有选项
+const updateQuery = () => {
+	if (!editableDiv.value) return;
+	
+	// 克隆div元素，以便安全操作
+	const clone = editableDiv.value.cloneNode(true);
+	
+	// 移除克隆中的下拉框元素，并替换为选中的值
+	const selectElements = clone.querySelectorAll('select');
+	selectElements.forEach((select, index) => {
+		// 获取对应下拉框的选中值
+		let selectedValue = '';
+		if (index === 0) {
+			selectedValue = styleValue.value || '';
+		}
+		// 创建一个新的文本节点来替换下拉框
+		const textNode = document.createTextNode(selectedValue);
+		select.parentNode.replaceChild(textNode, select);
+	});
+	
+	// 获取处理后的文本
+	formData.query = clone.innerText;
+};
+
+// 当风格下拉框值变化时，更新查询文本
+const styleValueChange = () => {
+	updateQuery();
 };
 const text = ref('');
 const text1 = ref('')
@@ -227,6 +269,21 @@ const placeholder3 = ref('【请选择】')
 const placeholder = ref('请输入稿件分析的具体要求。示例：请帮我对稿件内容进行分析，要求客观公正，对稿件评分、标签、原创性等多维度分析。')
 const placeholder4 = ref('【请输入】')
 const styleValue = ref('')
+
+const fetchData = () => {
+	debugger
+	const form = new FormData()
+	form.append('type', formData.type)
+	// form.append('conversation_id', isactive.value == 'creation' ? formData.conversation_id :'')
+	form.append('conversation_id', formData.conversation_id)
+	form.append('query', formData.query)
+	if (formData.local_files.length > 0) {
+		form.value.local_files.forEach((item, index) => {
+			form.append('local_files', item)
+		})
+	}
+  console.log('获取数据')
+}
 const logFocus = () => {
 	wContenteditable.value = false
 };
@@ -256,7 +313,6 @@ const handleDelete = (e) => {
 const focus = () => {
   editableDiv.value?.focus();
 };
-
 
 
 const scenes = [
@@ -407,7 +463,7 @@ const recentArticles = ref([
 }
 
 .el-form-item {
-  margin-bottom: 15px;
+  margin-bottom: 0px;
 }
 
 .prompt-buttons {
@@ -423,10 +479,10 @@ const recentArticles = ref([
 }
 
 .prompt-btn {
-  border: 1px solid #d9d9d9;
+  /* border: 1px solid #d9d9d9;
   background-color: #fff;
   color: #666;
-  margin-left: 0;
+  margin-left: 0; */
 }
 
 .start-btn {
@@ -514,13 +570,11 @@ const recentArticles = ref([
 				line-height: 11px;
 			}
 			:deep(.el-form-item__content) {
-				justify-content: flex-end;
+				/* justify-content: flex-end; */
 				.files-list {
 					width: 933px;
-					height: 50px;
 					padding-right: 20px;
 					box-sizing: border-box;
-					margin-top: 5px;
 					overflow: auto;
 					position: relative;
 					.tips-zs {
@@ -554,7 +608,7 @@ const recentArticles = ref([
 							background: #e6e8f8;
 							padding: 0 5px;
 							margin-right: 10px;
-							margin-bottom: 10px;
+							/* margin-bottom: 10px; */
 							color: rgba(51, 51, 51, 0.5);
 							position: relative;
 							.el-icon {
@@ -690,5 +744,8 @@ const recentArticles = ref([
 				}
 			}
 		}
+	}
+	.files-input-c {
+		width: 100%;
 	}
 </style>
