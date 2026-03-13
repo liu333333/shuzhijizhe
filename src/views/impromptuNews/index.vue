@@ -2,7 +2,7 @@
 	<div class="homepage" :class="[isFullPage ? 'fullpage' : '']">
 		<div class="title-nav-bg" :class="['title-nav-bg', itemArrayObj.itemArray.length > 0 ? 'title-shadow' : '']" v-if="isFullPage">
 			<div class="title-text" v-if="itemArrayObj.itemArray.length > 0 && !isShow">
-				{{ itemArrayObj.itemArray[itemArrayObj.itemArray.length - 1].title }}
+				{{ queryStr }}
 			</div>
 			<div class="history-btn" @click="historyBtn" v-if="false">
 				<el-icon><Clock /></el-icon> 历史
@@ -19,7 +19,7 @@
 							</div>
 						</div>
 						<div class="ans-title">
-							{{ item.title }}
+							{{ queryStr }}
 						</div>
 					</div>
 				</div>
@@ -29,7 +29,7 @@
 					<!-- 加载状态 -->
 					<div v-if="item.loading" class="loading-container">
 						<el-icon class="is-loading"><Loading /></el-icon>
-						<span>正在生成回答...</span>
+						<span>正在生成稿件...</span>
 					</div>
 					<div class="yqts" v-if="!item.loading">本问答由 AI 生成，仅供参考，注意甄别！</div>
 					<div class="ag" v-if="!item.loading">
@@ -47,6 +47,11 @@
 							<el-tooltip class="box-item" content="语音播放" placement="top">
 								<el-icon class="down-word" @click="voicePlay(index, item.title, item.textcopy)" v-if="isPlaying"><VideoPause /></el-icon>
 								<el-icon class="down-word" @click="voicePlay(index, item.title, item.textcopy)" v-else><Service /></el-icon>
+							</el-tooltip>
+						</div>
+						<div class="copy-box" @click="refresh(index, item.title, item.htmlcopy)">
+							<el-tooltip content="重新生成" placement="top">
+								<el-icon class="down-word"><el-icon><Refresh /></el-icon></el-icon>
 							</el-tooltip>
 						</div>
 						<!-- <div class="copy-box" @click="regenerateContent(index, item.content)">
@@ -159,7 +164,7 @@ import { reactive, ref, watch, nextTick, onMounted } from 'vue'
 import store from '@/store'
 import axios from 'axios'
 import { marked } from 'marked'
-import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download } from '@element-plus/icons-vue'
+import { Loading, Link, Promotion, Clock, Bottom, CircleCloseFilled, VideoPause, Service, CopyDocument, Download, Refresh } from '@element-plus/icons-vue'
 import { syHistoryList, syHistoryRecords ,stopChatMessages} from '@/api/ai'
 import { Document, Paragraph, HeadingLevel, TextRun, Table, TableRow, TableCell, Packer } from 'docx'
 import { saveAs } from 'file-saver'
@@ -438,6 +443,7 @@ const filesBox = ref(null)
 const filesList = ref(null)
 const filesListArrayId = ref([])
 const filesListArrayAllId = ref([])
+const queryStr = ref("")
 
 const fileDel = id => {
 	form.local_files = form.local_files.filter(item => item.uid !== id)
@@ -584,8 +590,21 @@ const loadAsk = async () => {
 		if (response.data.data.list.length > 0) {
 			// 取地条的content去问fetchData
             fetchData(response.data.data.list[0].content)
+			queryStr.value = response.data.data.list[0].content
+			nextTick(() => {
+				scrollToBottom()
+			})
 		}
 	}
+}
+
+const refresh = async (index) => {
+	if (loading.value) return
+	itemArrayObj.itemArray[index].loading = true
+	itemArrayObj.itemArray[index].compiledMarkdown = ''
+	itemArrayObj.itemArray[index].textcopy = ''
+	itemArrayObj.itemArray[index].htmlcopy = ''
+	fetchData(queryStr.value)
 }
 
 // 获取数据
@@ -612,131 +631,11 @@ const fetchData = async (query) => {
 	isStreaming.value = true
 	responseText.value = ''
 	const formData = new FormData()
-    query = `角色设定
-        你是一名具有多年经验的新闻记者与媒体编辑，熟悉主流媒体（如 新华社、人民日报、人民网）的新闻写作规范，擅长将采访语音或访谈内容整理为结构规范、表达严谨、逻辑清晰的新闻采访稿。
-        你的任务是根据我提供的采访语音转写文本或采访记录，整理信息并生成一篇符合专业媒体发布标准的新闻采访稿。
-
-        一、处理流程
-        请按照以下步骤完成任务：
-        第一步：采访信息整理
-        先对我提供的采访文本进行信息提炼和整理，包括：
-        * 采访对象（姓名、身份、职务）
-        * 采访时间
-        * 采访地点
-        * 采访背景或采访目的
-        * 采访核心议题
-        * 关键观点
-        * 重要数据或事实信息
-        * 有价值的原话引用
-        若采访内容存在以下情况：
-        * 语音转写错误
-        * 口语化表达
-        * 信息重复
-        * 问答顺序混乱
-        请进行合理整理与修正，但不得改变原意或新增事实信息。
-
-        第二步：提炼新闻核心
-        在写作之前，请先识别并提炼：
-        * 本次采访的核心新闻点
-        * 采访对象的主要观点
-        * 采访最具价值的信息
-        新闻稿应围绕这些内容展开，而不是简单复述采访过程。
-
-        二、新闻稿写作要求
-        请按照标准新闻稿结构进行写作：
-        1 标题
-        标题要求：
-        * 简洁明确
-        * 突出核心信息
-        * 符合新闻标题风格
-        * 避免夸张或营销式表达
-
-        2 导语（第一段）
-        导语需要在一段内交代清楚：
-        * 谁接受采访
-        * 在什么时间
-        * 在什么背景下
-        * 主要谈了什么内容
-        导语应概括采访最重要的信息。
-
-        3 主体部分
-        主体部分需围绕采访主题展开，可按以下方式组织：
-        * 按话题逻辑展开
-        * 按观点层次展开
-        * 按问题重点展开
-        写作要求：
-        * 不要使用简单问答形式
-        * 将采访内容转化为新闻叙述结构
-        * 合理穿插采访对象的直接引语
-        * 每个段落表达一个核心信息点
-
-        4 引语使用
-        若采访中有重要观点或标志性表达，可使用：
-        “……”
-        进行引用，以增强稿件真实性。
-        但引用需：
-        * 精炼
-        * 不宜过多
-        * 保持原意
-
-        5 结尾段
-        结尾可采用以下方式之一：
-        * 总结采访对象核心观点
-        * 强调采访意义
-        * 展望未来发展
-        结尾应简洁有力。
-
-        三、语言风格要求
-        文章整体需符合正式新闻报道语言规范：
-        * 客观、准确、严谨
-        * 表达清晰
-        * 逻辑流畅
-        * 避免明显口语化
-        * 避免夸张或评论性语言
-        * 段落层次分明
-        整体风格应接近主流媒体报道。
-
-        四、内容真实性要求
-        生成内容必须遵守以下原则：
-        * 完全基于我提供的采访信息
-        * 不得虚构事实
-        * 不得添加采访中未出现的观点
-        * 不得随意扩展采访对象的立场
-        如果某些信息缺失，请保持客观表达，不进行猜测。
-
-        五、信息优化规则
-        在不改变原意的前提下，可以进行：
-        * 语序优化
-        * 内容整合
-        * 重复信息删除
-        * 逻辑结构调整
-        目标是使稿件：
-        * 更符合新闻报道逻辑
-        * 更具可读性
-        * 更专业规范
-
-        六、输出格式
-        最终请按照以下格式输出：
-
-        标题：
-
-        导语：
-
-        正文：
-
-        结语：
-
-        七、补充规则
-        输入内容来自语音转写：
-        * 自动修正明显错别字
-        * 优化语句不通顺的地方
-        * 删除无意义停顿或重复
-        * 如果采访内容信息不足，请优先保持真实表达，不要为了完整而进行虚构补充。
-        但不得改变原始表达的核心含义。
-        以下是采访语音转写文本：` + query
 	// formData.append('type', form.type)
 	// formData.append('conversation_id', form.conversation_id)
+	formData.append('conversation_id', "")
 	formData.append('query', query)
+	formData.append('modelType', "CAI_FANG")
 	// if (form.local_files.length > 0) {
 	// 	form.local_files.forEach((item, index) => {
 	// 		formData.append('local_files', item)
@@ -750,7 +649,11 @@ const fetchData = async (query) => {
 			headers: {
 				Authorization: Authorization
 			},
-			data: formData,
+			data: {
+				conversation_id: "",
+				query: query,
+				modelType: "CAI_FANG"
+			},
 			responseType: 'text',
 			onDownloadProgress: progressEvent => {
 				if (!progressEvent.currentTarget) return
@@ -791,9 +694,28 @@ const processStreamData = chunk => {
 		// 假设数据是以换行符分隔的 JSON 字符串
 		const lines = chunk.split('\n')
 		lines.forEach(line => {
-			if (line.trim() && line.startsWith('data: ')) {
-				const dataStr = line.replace('data: ', '')
-				if (JSON.parse(dataStr).event === 'message_end' || dataStr.includes('message_end')) {
+			if (line.trim() && line.startsWith('data:data: ')) {
+				// const dataStr = line.replace('data:data: ', '').trim()
+				// console.log(dataStr)
+				// 假设 line 是从 EventSource 收到的原始行
+				const startIdx = line.indexOf('{');
+				if (startIdx === -1) {
+					// 没有 JSON 数据，忽略（可能是心跳或注释）
+					return;
+				}
+
+				// 提取 JSON 部分（从第一个 { 开始）
+				let jsonStr = line.substring(startIdx);
+				// 修复 JSON：将字符串值中的换行符转义为 \n
+				// const fixedJsonStr = jsonStr.replace(/"((?:\\.|[^"\\])*)"/g, (match, p1) => {
+				// 	// p1 是双引号内的内容，将其中的实际换行符替换为 \n
+				// 	const escaped = p1.replace(/\n/g, '\\n');
+				// 	return `"${escaped}"`;
+				// });
+				jsonStr = `${jsonStr}`
+				console.log(jsonStr)
+				const data = JSON.parse(jsonStr)
+				if (data.event === 'message_end'  || jsonStr.includes('message_end')) {
 					// 流结束
 					loading.value = false
 					isStop.value = false
@@ -804,7 +726,7 @@ const processStreamData = chunk => {
 				}
 
 				try {
-					const data = JSON.parse(dataStr)
+					
 					// 根据实际API响应结构调整
 					const content = data.choices?.[0]?.delta?.answer || data.answer || ''
 					form.conversation_id = data.conversation_id

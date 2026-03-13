@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <!-- 登录状态判断 -->
-    <template v-if="store.userStore.token">
+    <template v-if="true">
       <!-- 左侧导航栏 -->
       <aside class="sidebar">
         <div class="sidebar-header">
